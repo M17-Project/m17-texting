@@ -9,7 +9,7 @@ A simple C GUI app, generating M17 baseband of its packet mode. Works well with 
 Run `make` in the main directory.
 
 #### Prerequisites
-All the GTK3 stuff.
+All the GTK3 stuff, [libm17](https://github.com/M17-Project/libm17), [libao](https://github.com/xiph/libao).
 
 ### Running
 Run `./m17-texting`.
