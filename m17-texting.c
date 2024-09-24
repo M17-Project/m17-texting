@@ -46,12 +46,15 @@ lsf_t lsf;									//Link Setup Frame data
 uint8_t full_packet_data[32*25]={0};		//packet payload
 uint32_t pkt_sym_cnt=0;
 uint16_t num_bytes=0;						//size of payload in bytes
+uint8_t frame_cnt=0;						//total frame count
 
 uint8_t rf_bits[SYM_PER_PLD*2];				//type-4 bits for transmission
 float symbols[SYM_PER_FRA];					//frame symbols
 
 //audio playback
 int16_t samples[32+2][1920];				//S16 samples, fs=48kHz, enough for 40ms frames
+#define SAM_PER_FRA 3840U					//samples per frame (at sps=10 and fs=48kHz)
+											//the signal is stereo, therefore this value is doubled
 
 //funcs
 //filter symbols, flt is assumed to be 81 taps long
@@ -105,38 +108,28 @@ void generate_baseband(uint8_t phase_inv, float gain)
 	uint8_t cnt=0;
 	uint8_t frame_payload[26];
 
-	if(num_bytes>25)
+	while(num_bytes>25)
 	{
-		do
-		{
-			memcpy(frame_payload, &full_packet_data[cnt*25], 25);
-			frame_payload[25]=cnt<<2;
-			send_frame(symbols, frame_payload, FRAME_PKT, NULL, 0, 0);
-			filter_symbols(&samples[2+cnt][0], symbols, rrc_taps_10, phase_inv, gain);
-			cnt++;
-			num_bytes-=25;
-		}
-		while(num_bytes>=25);
+		memcpy(frame_payload, &full_packet_data[cnt*25], 25);
+		frame_payload[25]=cnt<<2;
+		send_frame(symbols, frame_payload, FRAME_PKT, NULL, 0, 0);
+		filter_symbols(&samples[2+cnt][0], symbols, rrc_taps_10, phase_inv, gain);
+		cnt++;
+		num_bytes-=25;
+	}
 
-		memset(frame_payload, 0, 26);
-		memcpy(frame_payload, &full_packet_data[cnt*25], num_bytes);
-		frame_payload[25]=0x80|(num_bytes<<2);
-		send_frame(symbols, frame_payload, FRAME_PKT, NULL, 0, 0);
-		filter_symbols(&samples[2+cnt][0], symbols, rrc_taps_10, phase_inv, gain);
-	}
-	else
-	{
-		memset(frame_payload, 0, 26);
-		memcpy(frame_payload, full_packet_data, num_bytes);
-		frame_payload[25]=0x80|(num_bytes<<2);
-		send_frame(symbols, frame_payload, FRAME_PKT, NULL, 0, 0);
-		filter_symbols(&samples[2+cnt][0], symbols, rrc_taps_10, phase_inv, gain);
-	}
+	memset(frame_payload, 0, 26);
+	memcpy(frame_payload, &full_packet_data[cnt*25], num_bytes);
+	frame_payload[25]=0x80|(num_bytes<<2);
+	send_frame(symbols, frame_payload, FRAME_PKT, NULL, 0, 0);
+	filter_symbols(&samples[2+cnt][0], symbols, rrc_taps_10, phase_inv, gain);
 
 	//generate EOT
 	pkt_sym_cnt=0;
 	send_eot(symbols, &pkt_sym_cnt);
 	filter_symbols(&samples[3+cnt][0], symbols, rrc_taps_10, phase_inv, gain);
+
+	frame_cnt=4+cnt;
 }
 
 //close COM
@@ -293,8 +286,8 @@ void button_press(void)
 	}
 
 	generate_baseband(settings.phase, settings.aud_lvl/100.0f);
-	for(uint8_t i=0; i<4; i++)
-		ao_play(device, (char*)&samples[i][0], 0.04*48000*2); //for a stereo signal, the buffer is LRLRLR... each sample is an int16_t, size in bytes
+	for(uint8_t i=0; i<frame_cnt; i++)
+		ao_play(device, (char*)&samples[i][0], SAM_PER_FRA); //for a stereo signal, the buffer is LRLRLR... each sample is an int16_t, size in bytes
 		//EoT frame is only 20ms - why?
 
 	usleep(100000);
