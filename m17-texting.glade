@@ -68,7 +68,7 @@
               <object class="GtkEntry" id="txt_dst">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="text" translatable="yes">#ALL</property>
+                <property name="text" translatable="yes">@ALL</property>
               </object>
               <packing>
                 <property name="expand">False</property>
