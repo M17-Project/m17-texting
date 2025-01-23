@@ -2,7 +2,7 @@
 // M17 C library - m17.h
 //
 // Wojciech Kaczmarski, SP5WWP
-// M17 Project, 29 December 2023
+// M17 Foundation, 22 January 2025
 //--------------------------------------------------------------------
 #pragma once
 
@@ -11,6 +11,8 @@ extern "C" {
 #endif
 #include <stdint.h>
 #include <stddef.h>
+
+#define LIBM17_VERSION		"1.0.0"
 
 // M17 C library - lib/lib.c
 #define BSB_SPS             10                      //samples per symbol
@@ -21,8 +23,32 @@ extern "C" {
 #define SYM_PER_FRA         192                     //symbols per whole 40 ms frame
 #define RRC_DEV             7168.0f                 //.rrc file deviation for +1.0 symbol
 
+// Link Setup Frame TYPE definitions
+#define M17_TYPE_PACKET			0
+#define M17_TYPE_STREAM			1
+#define M17_TYPE_DATA			(1<<1)
+#define M17_TYPE_VOICE			(2<<1)
+#define M17_TYPE_ENCR_NONE		(0<<3)
+#define M17_TYPE_ENCR_SCRAM		(1<<3)
+#define M17_TYPE_ENCR_AES		(2<<3)
+#define M17_TYPE_ENCR_SCRAM_8	(0<<5)
+#define M17_TYPE_ENCR_SCRAM_16	(1<<5)
+#define M17_TYPE_ENCR_SCRAM_24	(2<<5)
+#define M17_TYPE_ENCR_AES128	(0<<5)
+#define M17_TYPE_ENCR_AES192	(1<<5)
+#define M17_TYPE_ENCR_AES256	(2<<5)
+#define M17_TYPE_CAN(x)			(x<<7)
+#define M17_TYPE_UNSIGNED		(0<<11)
+#define M17_TYPE_SIGNED			(1<<11)
+// When no encryption is used, the Encryption Subtype field describes META field contents.
+#define M17_TYPE_META_TEXT		(0<<5)	//text data
+#define M17_TYPE_META_POSITION	(1<<5)	//GNSS position data
+#define M17_TYPE_META_EXT_CALL	(2<<5)	//Extended Callsign data
+
 // M17 C library - lib/payload/call.c
-#define CHAR_MAP " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-/."
+#define CHAR_MAP	" ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-/."
+#define U40_9		(262144000000000UL)	//40^9
+#define U40_9_8		(268697600000000UL) //40^9+40^8
 
 void decode_callsign_bytes(uint8_t *outp, const uint8_t inp[6]);
 void decode_callsign_value(uint8_t *outp, const uint64_t inp);
@@ -64,11 +90,16 @@ typedef struct
 } lsf_t;
 
 // M17 C library - high level functions
-void send_preamble(float out[SYM_PER_FRA], uint32_t* cnt, const pream_t type);
-void send_syncword(float out[SYM_PER_SWD], uint32_t* cnt, const uint16_t syncword);
-void send_data(float out[SYM_PER_PLD], uint32_t* cnt, const uint8_t* in);
-void send_eot(float out[SYM_PER_FRA], uint32_t* cnt);
-void send_frame(float out[SYM_PER_FRA], const uint8_t* data, const frame_t type, const lsf_t* lsf, const uint8_t lich_cnt, const uint16_t fn);
+void gen_preamble(float out[SYM_PER_FRA], uint32_t* cnt, const pream_t type);
+void gen_preamble_i8(int8_t out[SYM_PER_FRA], uint32_t* cnt, const pream_t type);
+void gen_syncword(float out[SYM_PER_SWD], uint32_t* cnt, const uint16_t syncword);
+void gen_syncword_i8(int8_t out[SYM_PER_SWD], uint32_t* cnt, const uint16_t syncword);
+void gen_data(float out[SYM_PER_PLD], uint32_t* cnt, const uint8_t* in);
+void gen_data_i8(int8_t out[SYM_PER_PLD], uint32_t* cnt, const uint8_t* in);
+void gen_eot(float out[SYM_PER_FRA], uint32_t* cnt);
+void gen_eot_i8(int8_t out[SYM_PER_FRA], uint32_t* cnt);
+void gen_frame(float out[SYM_PER_FRA], const uint8_t* data, const frame_t type, const lsf_t* lsf, const uint8_t lich_cnt, const uint16_t fn);
+void gen_frame_i8(int8_t out[SYM_PER_FRA], const uint8_t* data, const frame_t type, const lsf_t* lsf, const uint8_t lich_cnt, const uint16_t fn);
 
 // M17 C library - lib/encode/convol.c
 extern const uint8_t puncture_pattern_1[61];
@@ -76,7 +107,7 @@ extern const uint8_t puncture_pattern_2[12];
 extern const uint8_t puncture_pattern_3[8];
 
 void conv_encode_stream_frame(uint8_t* out, const uint8_t* in, const uint16_t fn);
-void conv_encode_packet_frame(uint8_t* out, const uint8_t* in);
+void conv_encode_packet_frame(uint8_t out[SYM_PER_PLD*2], const uint8_t in[26]);
 void conv_encode_LSF(uint8_t* out, const lsf_t* in);
 
 // M17 C library - lib/payload/crc.c
@@ -89,6 +120,10 @@ uint16_t LSF_CRC(const lsf_t* in);
 // M17 C library - lib/payload/lich.c
 void extract_LICH(uint8_t outp[6], const uint8_t cnt, const lsf_t* inp);
 void unpack_LICH(uint8_t* out, const uint8_t in[12]);
+
+// M17 C library - lib/payload/lsf.c
+void set_LSF(lsf_t *lsf, char *src, char *dst, uint16_t type, uint8_t meta[14]);
+void set_LSF_meta(lsf_t *lsf, uint8_t meta[14]);
 
 // M17 C library - lib/math/golay.c
 extern const uint16_t encode_matrix[12];
@@ -150,8 +185,8 @@ extern const uint16_t SYNC_BER;
 extern const uint16_t EOT_MRKR;
 
 // M17 C library - lib/decode/viterbi.c
-#define K			        5                       //constraint length
-#define NUM_STATES	        (1 << (K - 1))          //number of states
+#define M17_CONVOL_K				5									//constraint length K=5
+#define M17_CONVOL_STATES	        (1 << (M17_CONVOL_K - 1))			//number of states of the convolutional encoder
 
 uint32_t viterbi_decode(uint8_t* out, const uint16_t* in, const uint16_t len);
 uint32_t viterbi_decode_punctured(uint8_t* out, const uint16_t* in, const uint8_t* punct, const uint16_t in_len, const uint16_t p_len);
@@ -160,7 +195,7 @@ uint32_t viterbi_chainback(uint8_t* out, size_t pos, const uint16_t len);
 void viterbi_reset(void);
 
 //End of Transmission symbol pattern
-extern const float eot_symbols[8];
+extern const int8_t eot_symbols[8];
 
 // M17 C library - decode/symbols.c
 // syncword patterns (RX)
@@ -168,9 +203,6 @@ extern const float eot_symbols[8];
 extern const int8_t lsf_sync_symbols[8];
 extern const int8_t str_sync_symbols[8];
 extern const int8_t pkt_sync_symbols[8];
-
-// symbol levels (RX)
-extern const float symbol_levels[4];
 
 #ifdef __cplusplus
 }

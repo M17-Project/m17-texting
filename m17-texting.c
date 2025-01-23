@@ -97,11 +97,11 @@ void generate_baseband(uint8_t phase_inv, float gain)
 
 	//generate preamble
 	pkt_sym_cnt=0;
-	send_preamble(symbols, &pkt_sym_cnt, PREAM_LSF);
+	gen_preamble(symbols, &pkt_sym_cnt, PREAM_LSF);
 	filter_symbols(&samples[0][0], symbols, rrc_taps_10, phase_inv, gain);
 
 	//generate LSF
-	send_frame(symbols, NULL, FRAME_LSF, &lsf, 0, 0);
+	gen_frame(symbols, NULL, FRAME_LSF, &lsf, 0, 0);
 	filter_symbols(&samples[1][0], symbols, rrc_taps_10, phase_inv, gain);
 
 	//generate frames
@@ -112,7 +112,7 @@ void generate_baseband(uint8_t phase_inv, float gain)
 	{
 		memcpy(frame_payload, &full_packet_data[cnt*25], 25);
 		frame_payload[25]=cnt<<2;
-		send_frame(symbols, frame_payload, FRAME_PKT, NULL, 0, 0);
+		gen_frame(symbols, frame_payload, FRAME_PKT, NULL, 0, 0);
 		filter_symbols(&samples[2+cnt][0], symbols, rrc_taps_10, phase_inv, gain);
 		cnt++;
 		num_bytes-=25;
@@ -121,12 +121,12 @@ void generate_baseband(uint8_t phase_inv, float gain)
 	memset(frame_payload, 0, 26);
 	memcpy(frame_payload, &full_packet_data[cnt*25], num_bytes);
 	frame_payload[25]=0x80|(num_bytes<<2);
-	send_frame(symbols, frame_payload, FRAME_PKT, NULL, 0, 0);
+	gen_frame(symbols, frame_payload, FRAME_PKT, NULL, 0, 0);
 	filter_symbols(&samples[2+cnt][0], symbols, rrc_taps_10, phase_inv, gain);
 
 	//generate EOT
 	pkt_sym_cnt=0;
-	send_eot(symbols, &pkt_sym_cnt);
+	gen_eot(symbols, &pkt_sym_cnt);
 	filter_symbols(&samples[3+cnt][0], symbols, rrc_taps_10, phase_inv, gain);
 
 	frame_cnt=4+cnt;
