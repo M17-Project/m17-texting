@@ -14,7 +14,7 @@
 //audio
 #include <ao/ao.h>
 //M17
-#include "m17.h"
+#include <m17.h>
 //GTK
 #include <gtk/gtk.h> 
 
