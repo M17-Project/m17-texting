@@ -22,6 +22,7 @@
 GtkWidget *win;
 GtkWidget *txt_src;
 GtkWidget *txt_dst;
+GtkWidget *can_val;
 GtkWidget *txt_auddev;
 GtkWidget *txt_com;
 GtkWidget *txt_msg;
@@ -39,7 +40,7 @@ struct settings_t
 	char *dst_raw;		   // raw, unencoded destination address
 	char *src_raw;		   // raw, unencoded source address
 	uint8_t can;		   // Channel Access Number
-	char msg[32 * 25 - 4]; // text message
+	char msg[33 * 25 - 4]; // text message
 	uint8_t phase;		   // baseband phase 1-normal, 0-inverted
 	float aud_lvl;		   // audio level (0.0-min, 100.0-max)
 } settings;
@@ -47,7 +48,7 @@ struct settings_t
 // M17 stuff
 lsf_t lsf; // Link Setup Frame data
 
-uint8_t full_packet_data[32 * 25] = {0}; // packet payload
+uint8_t full_packet_data[33 * 25] = {0}; // packet payload
 uint32_t pkt_sym_cnt = 0;
 uint16_t num_bytes = 0; // size of payload in bytes
 uint8_t frame_cnt = 0;	// total frame count
@@ -229,10 +230,29 @@ void button_press(void)
 {
 	settings.src_raw = (char *)gtk_entry_get_text(GTK_ENTRY(txt_src));
 	settings.dst_raw = (char *)gtk_entry_get_text(GTK_ENTRY(txt_dst));
-	settings.can = 0; // hardcoded for now
 
-	// settings.msg is zero-initialized, so strncpy() is safe here
-	strncpy(settings.msg, gtk_entry_get_text(GTK_ENTRY(txt_msg)), sizeof(settings.msg) - 1);
+	// get CAN
+	char *can_text = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(can_val));
+
+	if (can_text)
+	{
+		settings.can = (uint8_t)atoi(can_text);
+		g_free(can_text);
+	}
+	else
+	{
+		settings.can = 0;
+	}
+
+	// copy text message
+	GtkTextBuffer *buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(txt_msg));
+
+	GtkTextIter start, end;
+	gtk_text_buffer_get_bounds(buf, &start, &end);
+
+	char *text = gtk_text_buffer_get_text(buf, &start, &end, FALSE);
+	strncpy(settings.msg, text, sizeof(settings.msg) - 1);
+	g_free(text);
 
 	const char *com = gtk_entry_get_text(GTK_ENTRY(txt_com));
 	settings.aud_lvl = gtk_range_get_value(GTK_RANGE(scale_tx));
@@ -343,6 +363,7 @@ int main(int argc, char **argv)
 	win = (GtkWidget *)gtk_builder_get_object(builder, "win");
 	txt_src = (GtkWidget *)gtk_builder_get_object(builder, "txt_src");
 	txt_dst = (GtkWidget *)gtk_builder_get_object(builder, "txt_dst");
+	can_val = (GtkWidget *)gtk_builder_get_object(builder, "can_val");
 	txt_auddev = (GtkWidget *)gtk_builder_get_object(builder, "txt_auddev");
 	txt_com = (GtkWidget *)gtk_builder_get_object(builder, "txt_com");
 	txt_msg = (GtkWidget *)gtk_builder_get_object(builder, "txt_msg");
