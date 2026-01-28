@@ -26,6 +26,7 @@ GtkWidget *can_val;
 GtkWidget *txt_auddev;
 GtkWidget *txt_com;
 GtkWidget *txt_msg;
+GtkWidget *lbl_msg_len;
 GtkWidget *btn_tx;
 GtkWidget *scale_tx;
 GtkWidget *sw_phase;
@@ -348,6 +349,22 @@ void button_press(GtkButton *button, gpointer user_data)
 	ser = -1;
 }
 
+void msg_changed(GtkTextBuffer *buf, gpointer user_data)
+{
+	(void)user_data;
+    GtkTextIter start, end;
+    gtk_text_buffer_get_bounds(buf, &start, &end);
+
+    char *text = gtk_text_buffer_get_text(buf, &start, &end, FALSE);
+
+    size_t bytes = strlen(text);   // UTF-8 byte count
+    char label[64];
+    snprintf(label, sizeof(label), "Length: %zu bytes", bytes);
+
+    gtk_label_set_text(GTK_LABEL(lbl_msg_len), label);
+    g_free(text);
+}
+
 // called when window is closed
 void window_delete_event(void)
 {
@@ -376,13 +393,19 @@ int main(int argc, char **argv)
 	txt_auddev = (GtkWidget *)gtk_builder_get_object(builder, "txt_auddev");
 	txt_com = (GtkWidget *)gtk_builder_get_object(builder, "txt_com");
 	txt_msg = (GtkWidget *)gtk_builder_get_object(builder, "txt_msg");
+	lbl_msg_len = (GtkWidget *)gtk_builder_get_object(builder, "lbl_msg_len");
 	btn_tx = (GtkWidget *)gtk_builder_get_object(builder, "btn_tx");
 	scale_tx = (GtkWidget *)gtk_builder_get_object(builder, "scale_tx");
 	sw_phase = (GtkWidget *)gtk_builder_get_object(builder, "sw_phase");
 
+	// signals
 	g_signal_connect(btn_tx, "clicked", G_CALLBACK(button_press), NULL);
 	g_signal_connect(win, "delete_event", G_CALLBACK(window_delete_event), NULL);
 
+	GtkTextBuffer *buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(txt_msg));
+	g_signal_connect(buf, "changed", G_CALLBACK(msg_changed), NULL);
+
+	// print libm17 version
 	fprintf(stderr, "Using libm17 %s\n", LIBM17_VERSION);
 
 	// init audio

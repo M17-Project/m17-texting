@@ -227,6 +227,19 @@
                 <property name="position">1</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkLabel" id="lbl_msg_len">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Length: 0 bytes</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -286,6 +299,7 @@
                 <property name="fill-level">100</property>
                 <property name="round-digits">0</property>
                 <property name="digits">0</property>
+                <property name="value-pos">left</property>
               </object>
               <packing>
                 <property name="expand">True</property>
