@@ -147,7 +147,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="txt_snddev">
+              <object class="GtkEntry" id="txt_auddev">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="text" translatable="yes">default</property>

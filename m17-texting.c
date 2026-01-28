@@ -57,7 +57,7 @@ uint8_t rf_bits[SYM_PER_PLD * 2]; // type-4 bits for transmission
 float symbols[SYM_PER_FRA];		  // frame symbols
 
 // audio playback
-int16_t samples[32 + 2][1920];							 // S16 samples, fs=48kHz, enough for 40ms frames
+int16_t samples[33 + 2 + 1][1920];						 // S16 samples, fs=48kHz, enough for 40ms frames
 #define SAM_PER_FRA (SYM_PER_FRA * 10 * sizeof(int16_t)) // samples per frame (at sps=10 and fs=48kHz)
 														 // the signal is mono
 
@@ -174,8 +174,8 @@ int openserial(const char *devicename)
 	}
 
 	attr = oldterminfo;
-	attr.c_cflag |= CRTSCTS | CLOCAL;
-	attr.c_oflag = 0;
+	attr.c_cflag &= ~CRTSCTS; // disable HW flow control
+	attr.c_cflag |= CLOCAL;
 
 	if (tcflush(fd, TCIOFLUSH) == -1)
 	{
@@ -226,8 +226,11 @@ void end_program(GtkWidget *wid, gpointer ptr)
 	gtk_main_quit();
 }
 
-void button_press(void)
+void button_press(GtkButton *button, gpointer user_data)
 {
+	(void)button;
+	(void)user_data;
+
 	settings.src_raw = (char *)gtk_entry_get_text(GTK_ENTRY(txt_src));
 	settings.dst_raw = (char *)gtk_entry_get_text(GTK_ENTRY(txt_dst));
 
@@ -252,6 +255,7 @@ void button_press(void)
 
 	char *text = gtk_text_buffer_get_text(buf, &start, &end, FALSE);
 	strncpy(settings.msg, text, sizeof(settings.msg) - 1);
+	settings.msg[sizeof(settings.msg) - 1] = 0;
 	g_free(text);
 
 	const char *com = gtk_entry_get_text(GTK_ENTRY(txt_com));
@@ -305,8 +309,6 @@ void button_press(void)
 		fprintf(stderr, "Serial open failed\n");
 		return;
 	}
-	setRTS(ser, 1); // PTT down
-	usleep(40000);	// let the transmitter settle
 
 	// play baseband
 	ao_device *device;
@@ -325,8 +327,13 @@ void button_press(void)
 	if (device == NULL)
 	{
 		fprintf(stderr, "Error opening audio device.\n");
-		gtk_main_quit();
+		closeserial(ser);
+		ser = -1;
+		return;
 	}
+
+	setRTS(ser, 1); // PTT down
+	usleep(40000);	// let the transmitter settle
 
 	generate_baseband(settings.phase, settings.aud_lvl / 100.0f);
 	for (uint8_t i = 0; i < frame_cnt; i++)
@@ -337,6 +344,8 @@ void button_press(void)
 
 	// close
 	ao_close(device);
+	closeserial(ser);
+	ser = -1;
 }
 
 // called when window is closed
@@ -386,7 +395,7 @@ int main(int argc, char **argv)
 
 	// this gets executed at exit
 	ao_shutdown();
-	if (ser)
+	if (ser > 0)
 		closeserial(ser);
 	fprintf(stderr, "Exiting.\n");
 
