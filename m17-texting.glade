@@ -212,14 +212,22 @@
               </packing>
             </child>
             <child>
-              <object class="GtkTextView" id="txt_msg">
+              <object class="GtkScrolledWindow">
                 <property name="height-request">100</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="left-margin">3</property>
-                <property name="right-margin">3</property>
-                <property name="top-margin">3</property>
-                <property name="bottom-margin">3</property>
+                <property name="hscrollbar-policy">never</property>
+                <property name="shadow-type">in</property>
+                <child>
+                  <object class="GtkTextView" id="txt_msg">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="left-margin">3</property>
+                    <property name="right-margin">3</property>
+                    <property name="top-margin">3</property>
+                    <property name="bottom-margin">3</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
