@@ -38,8 +38,8 @@ int ser;
 // input data
 struct settings_t
 {
-	char *dst_raw;		   // raw, unencoded destination address
-	char *src_raw;		   // raw, unencoded source address
+	char dst_raw[10];	   // raw, unencoded destination address
+	char src_raw[10];	   // raw, unencoded source address
 	uint8_t can;		   // Channel Access Number
 	char msg[33 * 25 - 4]; // text message
 	uint8_t phase;		   // baseband phase 1-normal, 0-inverted
@@ -147,6 +147,26 @@ void generate_baseband(uint8_t phase_inv, float gain)
 	frame_cnt = 4 + cnt + 1; // one extra frame full of zeros. this fixes truncated EoT frame
 }
 
+void normalize_callsign(char *out, const char *in)
+{
+	if (!in || !out)
+		return;
+
+	// skip leading whitespace
+	while (*in && g_ascii_isspace(*in))
+		in++;
+
+	size_t i = 0;
+	while (*in && i < 9) // the input field is limited to 9 chars anyway
+	{
+		if (!g_ascii_isspace(*in))
+			out[i++] = g_ascii_toupper(*in);
+		in++;
+	}
+
+	out[i] = 0;
+}
+
 // close COM
 void closeserial(int fd)
 {
@@ -232,8 +252,8 @@ void button_press(GtkButton *button, gpointer user_data)
 	(void)button;
 	(void)user_data;
 
-	settings.src_raw = (char *)gtk_entry_get_text(GTK_ENTRY(txt_src));
-	settings.dst_raw = (char *)gtk_entry_get_text(GTK_ENTRY(txt_dst));
+	normalize_callsign(settings.src_raw, (char *)gtk_entry_get_text(GTK_ENTRY(txt_src)));
+	normalize_callsign(settings.dst_raw, (char *)gtk_entry_get_text(GTK_ENTRY(txt_dst)));
 
 	// get CAN
 	char *can_text = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(can_val));
@@ -352,17 +372,17 @@ void button_press(GtkButton *button, gpointer user_data)
 void msg_changed(GtkTextBuffer *buf, gpointer user_data)
 {
 	(void)user_data;
-    GtkTextIter start, end;
-    gtk_text_buffer_get_bounds(buf, &start, &end);
+	GtkTextIter start, end;
+	gtk_text_buffer_get_bounds(buf, &start, &end);
 
-    char *text = gtk_text_buffer_get_text(buf, &start, &end, FALSE);
+	char *text = gtk_text_buffer_get_text(buf, &start, &end, FALSE);
 
-    size_t bytes = strlen(text);   // UTF-8 byte count
-    char label[64];
-    snprintf(label, sizeof(label), "Length: %zu bytes", bytes);
+	size_t bytes = strlen(text); // UTF-8 byte count
+	char label[64];
+	snprintf(label, sizeof(label), "Length: %zu bytes", bytes);
 
-    gtk_label_set_text(GTK_LABEL(lbl_msg_len), label);
-    g_free(text);
+	gtk_label_set_text(GTK_LABEL(lbl_msg_len), label);
+	g_free(text);
 }
 
 // called when window is closed

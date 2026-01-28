@@ -43,6 +43,7 @@
               <object class="GtkEntry" id="txt_src">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="max-length">9</property>
                 <property name="text" translatable="yes">N0CALL</property>
               </object>
               <packing>
@@ -68,6 +69,7 @@
               <object class="GtkEntry" id="txt_dst">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="max-length">9</property>
                 <property name="text" translatable="yes">@ALL</property>
               </object>
               <packing>
