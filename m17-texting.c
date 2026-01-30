@@ -393,18 +393,9 @@ void window_delete_event(void)
 
 int main(int argc, char **argv)
 {
-	GError *error = NULL;
-
 	gtk_init(&argc, &argv);
 
-	GtkBuilder *builder = gtk_builder_new();
-	if (0 == gtk_builder_add_from_file(builder, "m17-texting.glade", &error))
-	{
-		g_printerr("Error loading file: %s\n", error->message);
-		g_clear_error(&error);
-
-		return 1;
-	}
+	GtkBuilder *builder = gtk_builder_new_from_resource("/com/m17project/m17-texting/m17-texting.glade");
 
 	win = (GtkWidget *)gtk_builder_get_object(builder, "win");
 	txt_src = (GtkWidget *)gtk_builder_get_object(builder, "txt_src");
