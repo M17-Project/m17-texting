@@ -306,10 +306,15 @@ void button_press(GtkButton *button, gpointer user_data)
 		lsf.src[5 - i] = (src_enc >> (i * 8)) & 0xFF;
 	}
 
-	type = M17_TYPE_PACKET | M17_TYPE_DATA | M17_TYPE_CAN(settings.can);
+	type = M17_TYPE_PACKET | /*M17_TYPE_ENCR_AES192 |*/ M17_TYPE_CAN(settings.can);
 	lsf.type[0] = (uint16_t)type >> 8;
 	lsf.type[1] = (uint16_t)type & 0xFF;
 	memset(&lsf.meta, 0, 112 / 8);
+	/*(set_LSF_meta_position(&lsf, 2, M17_GNSS_STATION_MOBILE,
+		52.25, 21,
+		M17_GNSS_LAT_LON_VALID | M17_GNSS_ALT_VALID | \
+		M17_GNSS_SPD_BEARING_VALID | M17_GNSS_RADIUS_VALID,
+		17.0, 0, 0, 1);*/
 
 	// calculate LSF CRC
 	uint16_t lsf_crc = LSF_CRC(&lsf);
