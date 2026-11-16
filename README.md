@@ -15,7 +15,7 @@ All the GTK3 stuff, [libm17](https://github.com/M17-Project/libm17), [libao](htt
 Run `./m17-texting`.
 
 ### Decoding
-M17 packets can be decoded with the `m17-packet-decoder` available in the [M17_Implementations](https://github.com/M17-Project/M17_Implementations) repository.
+M17 packets can be decoded with the `m17-packet-decode` available in the [M17_Implementations](https://github.com/M17-Project/M17_Implementations) repository.
 
 Example decode:
 
